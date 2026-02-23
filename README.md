@@ -1,4 +1,4 @@
-# SafePhishi
+# PhishGuard Website
 
 Simple web application built with Flask that lets users register, log in, and scan URLs and emails for potential phishing using a lightweight heuristic model (with room to plug in a real ML model later).
 
@@ -13,7 +13,7 @@ Simple web application built with Flask that lets users register, log in, and sc
 ## Project structure
 
 ```text
-phishing-detector/
+phishguard-website/
 ├── app.py            # Flask app factory and routes (index, dashboard, profile)
 ├── auth.py           # Authentication blueprint (login, register, logout)
 ├── models.py         # SQLAlchemy models (User, ScanResult)
@@ -59,7 +59,7 @@ At minimum, set a secure `SECRET_KEY` in `.env` for production use.
 4. **Run the app**:
 
 ```bash
-python app.py
+python run.py
 ```
 
 Then open `http://127.0.0.1:5000/` in your browser.
@@ -84,4 +84,3 @@ To plug in a real model:
 ## License
 
 This project is licensed under the MIT License. See `LICENSE` for details.
-
