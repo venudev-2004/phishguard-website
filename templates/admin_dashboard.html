@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>Admin Dashboard · SafePhishi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Admin Specific Styles */
+    :root {
+      --sidebar-width: 260px;
+    }
+
+    body {
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────── */
+    .admin-sidebar {
+      width: var(--sidebar-width);
+      background: var(--void-glass-hi);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border-cyan);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+      z-index: 100;
+      transition: var(--transition-md);
+    }
+
+    .sidebar-header {
+      padding: 2rem 1.5rem;
+      border-bottom: 1px solid var(--border-glass);
+      margin-bottom: 1rem;
+    }
+
+    .sidebar-logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--cyan), var(--violet-bright));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 0 1rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      padding: 0.85rem 1rem;
+      color: var(--text-soft);
+      text-decoration: none;
+      border-radius: var(--r-sm);
+      margin-bottom: 0.5rem;
+      transition: var(--transition-fast);
+      font-weight: 500;
+    }
+
+    .nav-item i {
+      margin-right: 1rem;
+      font-size: 1.25rem;
+      width: 24px;
+      text-align: center;
+    }
+
+    .nav-item:hover,
+    .nav-item.active {
+      background: var(--cyan-halo);
+      color: var(--cyan);
+      box-shadow: inset 0 0 0 1px var(--border-cyan);
+    }
+
+    .sidebar-footer {
+      padding: 1.5rem;
+      border-top: 1px solid var(--border-glass);
+    }
+
+    /* ── Main Content ────────────────────────────────────── */
+    .admin-content {
+      flex: 1;
+      margin-left: var(--sidebar-width);
+      padding: 2rem;
+      max-width: calc(100vw - var(--sidebar-width));
+    }
+
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .admin-title h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-prime);
+    }
+
+    .admin-title p {
+      color: var(--text-soft);
+    }
+
+    /* ── Metrics ─────────────────────────────────────────── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .stat-card {
+      background: var(--void-raised);
+      border: 1px solid var(--border-glass);
+      padding: 1.5rem;
+      border-radius: var(--r-md);
+      transition: var(--transition-md);
+    }
+
+    .stat-card:hover {
+      box-shadow: var(--glow-card-hover);
+      transform: translateY(-4px);
+    }
+
+    .stat-label {
+      color: var(--text-soft);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--text-prime);
+      display: block;
+    }
+
+    .stat-trend {
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .stat-trend.up {
+      color: var(--green);
+    }
+
+    .stat-trend.down {
+      color: var(--red);
+    }
+
+    /* ── Charts ──────────────────────────────────────────── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    @media (max-width: 1200px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-container {
+      background: var(--void-card);
+      border: 1px solid var(--border-glass);
+      padding: 1.5rem;
+      border-radius: var(--r-md);
+      position: relative;
+    }
+
+    .chart-header {
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chart-header h3 {
+      font-size: 1.1rem;
+      color: var(--text-prime);
+    }
+
+    /* ── Tables ──────────────────────────────────────────── */
+    .table-card {
+      background: var(--void-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      margin-bottom: 2.5rem;
+    }
+
+    .table-card-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-glass);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .table-card-header h3 {
+      font-size: 1.1rem;
+    }
+
+    /* ── System Health ───────────────────────────────────── */
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .health-card {
+      background: var(--void-raised);
+      padding: 1.25rem;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border-glass);
+    }
+
+    .health-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .health-label {
+      color: var(--text-soft);
+    }
+
+    .health-val {
+      color: var(--text-prime);
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+
+<body>
+  <aside class="admin-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">SAFEPHISHI</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('admin.dashboard') }}" class="nav-item active">
+        <i>📊</i> Dashboard
+      </a>
+      <a href="{{ url_for('admin.users_list') }}" class="nav-item">
+        <i>👥</i> Users
+      </a>
+      <a href="#" class="nav-item">
+        <i>📈</i> Analytics
+      </a>
+      <a href="#" class="nav-item">
+        <i>🛠️</i> Settings
+      </a>
+      <a href="{{ url_for('dashboard') }}" class="nav-item">
+        <i>🔙</i> User Panel
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <form action="{{ url_for('auth.logout') }}" method="get">
+        <button type="submit" class="btn btn-outline btn-block">Log Out</button>
+      </form>
+    </div>
+  </aside>
+
+  <main class="admin-content">
+    <header class="admin-header">
+      <div class="admin-title">
+        <h1>Command Center</h1>
+        <p>System monitoring and security overview</p>
+      </div>
+      <div class="admin-actions">
+        <form action="{{ url_for('admin.clear_cache') }}" method="POST" style="display:inline;">
+          <button type="submit" class="btn btn-outline" onclick="return confirm('Clear all cached API results?')">Flush
+            Cache</button>
+        </form>
+        <button class="btn btn-primary" onclick="window.print()">Export Report</button>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container" style="margin-bottom: 2rem;">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <section class="metrics-grid">
+      <div class="stat-card">
+        <span class="stat-label">Total Registered Users</span>
+        <span class="stat-value">{{ total_users }}</span>
+        <div class="stat-trend up"><span>↑</span> 12% from last month</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Total Scans Executed</span>
+        <span class="stat-value">{{ total_scans }}</span>
+        <div class="stat-trend up"><span>↑</span> 24% from last month</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Phishing Detected</span>
+        <span class="stat-value" style="color: var(--red);">{{ phishing_scans }}</span>
+        <div class="stat-trend down"><span>↑</span> 5.2% detection rate</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Active Today</span>
+        <span class="stat-value">{{ active_today }}</span>
+        <div class="stat-trend ok">Current online users</div>
+      </div>
+    </section>
+
+    <section class="charts-grid">
+      <div class="chart-container">
+        <div class="chart-header">
+          <h3>Scan Activity (Last 7 Days)</h3>
+        </div>
+        <canvas id="scansChart" height="250"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-header">
+          <h3>Top Phishing Domains</h3>
+        </div>
+        <canvas id="domainsChart" height="250"></canvas>
+      </div>
+    </section>
+
+    <section class="charts-grid" style="grid-template-columns: 1fr;">
+      <div class="chart-container">
+        <div class="chart-header">
+          <h3>Risk Distribution</h3>
+        </div>
+        <div style="height: 250px;">
+          <canvas id="riskChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="table-card">
+      <div class="table-card-header">
+        <h3>Live Scan Feed</h3>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>URL / Target</th>
+              <th>Verdict</th>
+              <th>Risk</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for scan in recent_scans %}
+            <tr>
+              <td><span class="muted">{{ scan.user.email }}</span></td>
+              <td class="url-cell" title="{{ scan.url }}">{{ scan.url|truncate(40) }}</td>
+              <td>
+                {% if scan.is_phishing %}
+                <span class="badge badge-danger">Phishing</span>
+                {% else %}
+                <span class="badge badge-success">Safe</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="risk-text risk-{{ scan.risk_label|lower if scan.risk_label else 'none' }}">
+                  {{ scan.risk_label }}
+                </span>
+              </td>
+              <td>{{ scan.created_at.strftime('%m/%d %H:%M') }}</td>
+              <td>
+                <form action="{{ url_for('admin.delete_scan', scan_id=scan.id) }}" method="POST"
+                  style="display:inline;">
+                  <button type="submit" class="btn btn-outline btn-sm" style="color:var(--red);"
+                    onclick="return confirm('Permanently delete this scan?')">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="health-grid">
+      <div class="health-card">
+        <h3>System Health</h3>
+        <div class="health-item" style="margin-top:1rem;">
+          <span class="health-label">Database Size</span>
+          <span class="health-val">{{ db_size }}</span>
+        </div>
+        <div class="health-item">
+          <span class="health-label">API Status</span>
+          <span class="health-val" style="color:var(--green)">Online</span>
+        </div>
+        <div class="health-item">
+          <span class="health-label">Environment</span>
+          <span class="health-val">Production</span>
+        </div>
+      </div>
+
+      <div class="health-card">
+        <h3>Suspicious Activity</h3>
+        <div class="health-item" style="margin-top:1rem;">
+          <span class="health-label">Failed Logins (24h)</span>
+          <span class="health-val">2</span>
+        </div>
+        <div class="health-item">
+          <span class="health-label">Rate Limit Hits</span>
+          <span class="health-val">0</span>
+        </div>
+        <div class="health-item">
+          <span class="health-label">IP Blacklist</span>
+          <span class="health-val">4 Active</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Initialize Charts
+    document.addEventListener('DOMContentLoaded', function () {
+      fetch('{{ url_for("admin.stats") }}')
+        .then(response => response.json())
+        .then(data => {
+          // Line Chart
+          const scansCtx = document.getElementById('scansChart').getContext('2d');
+          new Chart(scansCtx, {
+            type: 'line',
+            data: {
+              labels: data.time_series.labels,
+              datasets: [{
+                label: 'Total Scans',
+                data: data.time_series.scans,
+                borderColor: '#00f5ff',
+                backgroundColor: 'rgba(0, 245, 255, 0.1)',
+                tension: 0.4,
+                fill: true
+              }, {
+                label: 'Phishing Detected',
+                data: data.time_series.phishing,
+                borderColor: '#ff2d78',
+                backgroundColor: 'rgba(255, 45, 120, 0.1)',
+                tension: 0.4,
+                fill: true
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { labels: { color: '#e8eaf6' } }
+              },
+              scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#e8eaf6' } },
+                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#e8eaf6' } }
+              }
+            }
+          });
+
+          // Horizontal Bar Chart
+          const domainsCtx = document.getElementById('domainsChart').getContext('2d');
+          new Chart(domainsCtx, {
+            type: 'bar',
+            data: {
+              labels: data.top_domains.labels,
+              datasets: [{
+                label: 'Detections',
+                data: data.top_domains.values,
+                backgroundColor: 'rgba(139, 43, 226, 0.6)',
+                borderColor: '#8b2be2',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#e8eaf6' } },
+                y: { grid: { display: false }, ticks: { color: '#e8eaf6' } }
+              }
+            }
+          });
+
+          // Doughnut Chart
+          const riskCtx = document.getElementById('riskChart').getContext('2d');
+          new Chart(riskCtx, {
+            type: 'doughnut',
+            data: {
+              labels: data.risk_dist.labels,
+              datasets: [{
+                data: data.risk_dist.values,
+                backgroundColor: ['#00e676', '#ffab00', '#ff3d71', '#00f5ff', '#8b2be2'],
+                borderWidth: 0
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'right', labels: { color: '#e8eaf6' } }
+              }
+            }
+          });
+        });
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Management · SafePhishi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <style>
+        /* Admin Specific Styles */
+        :root {
+            --sidebar-width: 260px;
+        }
+
+        body {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .admin-sidebar {
+            width: var(--sidebar-width);
+            background: var(--void-glass-hi);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border-cyan);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            transition: var(--transition-md);
+        }
+
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid var(--border-glass);
+            margin-bottom: 1rem;
+        }
+
+        .sidebar-logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--cyan), var(--violet-bright));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 0 1rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.85rem 1rem;
+            color: var(--text-soft);
+            text-decoration: none;
+            border-radius: var(--r-sm);
+            margin-bottom: 0.5rem;
+            transition: var(--transition-fast);
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: var(--cyan-halo);
+            color: var(--cyan);
+            box-shadow: inset 0 0 0 1px var(--border-cyan);
+        }
+
+        .sidebar-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-glass);
+        }
+
+        .admin-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+        }
+
+        .admin-header {
+            margin-bottom: 2.5rem;
+        }
+
+        .admin-header h1 {
+            font-size: 2rem;
+            color: var(--text-prime);
+        }
+
+        .user-table-card {
+            background: var(--void-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--r-md);
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">SAFEPHISHI</div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin.dashboard') }}" class="nav-item">
+                <i>📊</i> Dashboard
+            </a>
+            <a href="{{ url_for('admin.users_list') }}" class="nav-item active">
+                <i>👥</i> Users
+            </a>
+            <a href="#" class="nav-item">
+                <i>📈</i> Analytics
+            </a>
+            <a href="#" class="nav-item">
+                <i>🛠️</i> Settings
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="nav-item">
+                <i>🔙</i> User Panel
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <form action="{{ url_for('auth.logout') }}" method="get">
+                <button type="submit" class="btn btn-outline btn-block">Log Out</button>
+            </form>
+        </div>
+    </aside>
+
+    <main class="admin-content">
+        <header class="admin-header">
+            <h1>User Management</h1>
+            <p class="muted">Monitor and control application access</p>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-container" style="margin-bottom: 2rem;">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="user-table-card">
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Joined</th>
+                            <th>Total Scans</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td><span class="muted">#{{ user.id }}</span></td>
+                            <td><strong>{{ user.email }}</strong></td>
+                            <td>
+                                {% if user.is_admin %}
+                                <span class="badge badge-success">Admin</span>
+                                {% else %}
+                                <span class="badge"
+                                    style="color:var(--text-soft);border-color:var(--border-glass)">Standard User</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ user.scan_count }}</td>
+                            <td>
+                                <form action="{{ url_for('admin.toggle_admin', user_id=user.id) }}" method="POST"
+                                    style="display:inline;">
+                                    <button type="submit" class="btn btn-outline btn-sm">
+                                        {{ 'Revoke Admin' if user.is_admin else 'Make Admin' }}
+                                    </button>
+                                </form>
+                                <button class="btn btn-outline btn-sm" style="color:var(--red);"
+                                    disabled>Suspend</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

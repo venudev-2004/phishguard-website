@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="SafePhishi — AI-powered phishing detection for links and emails. Stay protected." />
+  <title>SafePhishi · Smart phishing detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+
+<body>
+  <header class="navbar">
+    <div class="container navbar-content">
+      <div class="logo">SafePhishi</div>
+      <nav class="nav-links">
+        <a href="{{ url_for('index') }}" class="active">Home</a>
+        <a href="{{ url_for('auth.login') }}">Login</a>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Get Started</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-content">
+        <div class="logo-orbit" aria-hidden="true">
+          <div class="logo-orbit-inner">
+            <div class="logo-orbit-core">SafePhishi</div>
+          </div>
+        </div>
+        <div class="hero-text">
+          <h1>Detect phishing links before they attack.</h1>
+          <p>
+            Paste any suspicious URL and instantly see whether it might be a
+            phishing attempt, backed by machine learning and smart heuristics.
+          </p>
+          <div class="hero-actions">
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary">⚡ Create free account</a>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline">Sign in</a>
+          </div>
+        </div>
+        <div class="hero-card card">
+          <h2>Quick URL check</h2>
+          <form method="post" action="{{ url_for('auth.login') }}">
+            <label for="url">Enter a suspicious URL</label>
+            <input type="url" id="url" name="url" placeholder="https://example.com/login" required />
+            <p class="helper-text">
+              Create an account or sign in to run detailed scans and view history.
+            </p>
+            <button type="submit" class="btn btn-primary btn-block">
+              Start scanning
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="tips-section">
+      <div class="container">
+        <h2>Stay safe from phishing</h2>
+        <div class="tips-grid">
+          <article class="tip-card card">
+            <h3>🔍 Check the sender and domain</h3>
+            <p>
+              Phishing emails often spoof real brands. Carefully inspect the
+              sender address and the domain in any link before you click.
+            </p>
+          </article>
+          <article class="tip-card card">
+            <h3>⚡ Beware of urgency</h3>
+            <p>
+              Messages that threaten account closure or demand instant action
+              are classic phishing tactics. Pause and verify through official
+              channels.
+            </p>
+          </article>
+          <article class="tip-card card">
+            <h3>🔒 Never share passwords by email</h3>
+            <p>
+              Legitimate services will not ask for your password, 2FA codes,
+              or full card details over email or chat.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-content">
+      <p>&copy; {{ 2026 }} SafePhishi. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

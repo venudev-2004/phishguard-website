@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description"
+    content="SafePhishi dashboard — detect phishing links and emails with AI-powered analysis." />
+  <title>Dashboard · SafePhishi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  {#- Cache busting for static files using a version parameter -#}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v='20260223V1') }}" />
+</head>
+
+<body>
+  <header class="navbar">
+    <div class="container navbar-content">
+      <div class="logo">SafePhishi</div>
+      <nav class="nav-links">
+        <a href="{{ url_for('dashboard') }}"
+          class="{{ 'active' if request.endpoint == 'dashboard' else '' }}">Dashboard</a>
+        {% if current_user and current_user.is_authenticated %}
+        <a href="{{ url_for('profile') }}" class="{{ 'active' if request.endpoint == 'profile' else '' }}">Profile</a>
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('admin.dashboard') }}" class="admin-link">Admin ⚡</a>
+        {% endif %}
+        <form class="inline-form" method="post" action="{{ url_for('auth.logout') }}">
+          {% if csrf_token %}
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% endif %}
+          <button type="submit" class="btn btn-outline btn-sm">Logout</button>
+        </form>
+        {% else %}
+        <a href="{{ url_for('auth.login') }}">Login</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="dashboard-main">
+    <div class="dashboard-orbit" aria-hidden="true">
+      <div class="dashboard-orbit-inner">
+        <div class="dashboard-orbit-core">SafePhishi</div>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- ── Metric Cards ── -->
+      <section class="dashboard-metrics">
+        <div class="metric-card">
+          <span class="metric-label">Total scans</span>
+          <span class="metric-value">{{ total_scans|default(0, true) }}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Safe detections</span>
+          <span class="metric-value">{{ safe_scans|default(0, true) }}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Phishing detected</span>
+          <span class="metric-value">{{ phishing_scans|default(0, true) }}</span>
+        </div>
+      </section>
+
+      <div class="dashboard-grid">
+        <!-- ══ SCAN CARD ══ -->
+        <section class="card scan-card">
+          <h1>Phishing link & email checker</h1>
+
+          {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category|default('info') }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% endwith %}
+
+          <form method="post" action="{{ url_for('dashboard') }}" class="scan-grid">
+            {% if csrf_token %}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% endif %}
+
+            <!-- URL column -->
+            <div>
+              <h2 class="scan-subtitle">URL analysis</h2>
+              <label for="url">Suspicious URL</label>
+              <input type="url" id="url" name="url" value="{{ url|default('', true) }}"
+                placeholder="https://example.com/login" />
+
+              {% if url_prediction %}
+              <div class="prediction-result">
+                {% if url_prediction.is_phishing %}
+                <div class="badge badge-danger">⚠ Potential phishing detected</div>
+                {% else %}
+                <div class="badge badge-success">✓ No phishing detected</div>
+                {% endif %}
+
+                {% if url_prediction.score is not none %}
+                <p class="score-text">
+                  Heuristic score: <strong>{{ '%.2f'|format((url_prediction.score|default(0)|float) * 100) }}%</strong>
+                </p>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              <!-- ══ API INTEL PANEL ══ -->
+              {# Proper null check for api_result #}
+              {% if api_result %}
+              {% set rs = api_result.composite_risk_score|default(0) %}
+              {%- if rs >= 0.65 -%}{%- set risk_cls = 'high' -%}
+              {%- elif rs >= 0.35 -%}{%- set risk_cls = 'medium' -%}
+              {%- elif rs > 0 -%}{%- set risk_cls = 'low' -%}
+              {%- else -%}{%- set risk_cls = 'clean' -%}
+              {%- endif %}
+
+              <div class="api-intel-panel">
+                <div class="api-intel-title">
+                  🛡 Security Intel — {{ api_result.risk_label|default('Result') }}
+                </div>
+
+                <!-- Composite risk bar -->
+                <div class="risk-bar-wrap">
+                  {% set rs_percent = ((rs|float) * 100)|round|int %}
+                  <div class="risk-bar-bg">
+                    <div class="risk-bar-fill {{ risk_cls }}" data-rs-width="{{ rs_percent }}" style="width: 0%;"></div>
+                  </div>
+                  <span class="risk-label-text {{ risk_cls }}">
+                    {{ '%.0f'|format((rs|float) * 100) }}% risk
+                  </span>
+                </div>
+
+                <div class="intel-grid">
+
+                  <!-- Google Safe Browsing -->
+                  <div class="intel-check">
+                    <span class="intel-check-name">🔍 Google Safe Browsing</span>
+                    {% if api_result.gsb_error %}
+                    <span class="intel-check-val muted">{{ api_result.gsb_error }}</span>
+                    {% elif api_result.gsb_is_unsafe %}
+                    <span class="intel-check-val bad">⚠ Flagged — {{ api_result.gsb_threats|join(', ')|default('Unsafe')
+                      }}</span>
+                    {% else %}
+                    <span class="intel-check-val ok">✓ Clean</span>
+                    {% endif %}
+                  </div>
+
+                  <!-- VirusTotal -->
+                  <div class="intel-check">
+                    <span class="intel-check-name">🦠 VirusTotal</span>
+                    {% if api_result.vt_error %}
+                    <span class="intel-check-val muted">{{ api_result.vt_error }}</span>
+                    {% else %}
+                    {% if api_result.vt_positives is not none and api_result.vt_positives > 0 %}
+                    <span class="intel-check-val bad">
+                      {{ api_result.vt_positives }}/{{ api_result.vt_total_engines|default('?') }} engines flagged
+                    </span>
+                    {% else %}
+                    <span class="intel-check-val ok">
+                      0/{{ api_result.vt_total_engines|default('?') }} engines flagged
+                    </span>
+                    {% endif %}
+                    {% if api_result.vt_permalink %}
+                    <a class="intel-link" href="{{ api_result.vt_permalink|e }}" target="_blank"
+                      rel="noopener noreferrer">
+                      View full report ↗
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                  </div>
+
+                  <!-- WHOIS -->
+                  <div class="intel-check">
+                    <span class="intel-check-name">📋 Domain WHOIS</span>
+                    {% if api_result.whois_error %}
+                    <span class="intel-check-val muted">{{ api_result.whois_error }}</span>
+                    {% else %}
+                    {% if api_result.whois_is_new_domain %}
+                    <span class="intel-check-val bad">
+                      ⚠ New domain — {{ api_result.whois_age_days|default('?') }} days old
+                    </span>
+                    {% elif api_result.whois_age_days is not none %}
+                    <span class="intel-check-val ok">
+                      {{ api_result.whois_age_days }} days old
+                    </span>
+                    {% else %}
+                    <span class="intel-check-val muted">Age unknown</span>
+                    {% endif %}
+
+                    {% if api_result.whois_registrar %}
+                    <span class="intel-check-val registrar-text">
+                      {{ api_result.whois_registrar }}
+                    </span>
+                    {% endif %}
+
+                    {% if api_result.whois_creation_date %}
+                    <span class="intel-check-val registration-date">
+                      Registered: {{ api_result.whois_creation_date.strftime('%Y-%m-%d') }}
+                    </span>
+                    {% endif %}
+                    {% endif %}
+                  </div>
+
+                  <!-- SSL -->
+                  <div class="intel-check">
+                    <span class="intel-check-name">🔒 SSL Certificate</span>
+                    {% if api_result.ssl_error %}
+                    <span class="intel-check-val bad">{{ api_result.ssl_error }}</span>
+                    {% elif api_result.ssl_is_self_signed %}
+                    <span class="intel-check-val warn">⚠ Self-signed certificate</span>
+                    {% elif api_result.ssl_is_expired %}
+                    <span class="intel-check-val bad">✗ Certificate expired</span>
+                    {% elif api_result.ssl_valid %}
+                    <span class="intel-check-val ok">✓ Valid</span>
+                    {% else %}
+                    <span class="intel-check-val bad">✗ Invalid</span>
+                    {% endif %}
+
+                    {% if api_result.ssl_issuer %}
+                    <span class="intel-check-val issuer-text">
+                      Issuer: {{ api_result.ssl_issuer }}
+                    </span>
+                    {% endif %}
+
+                    {% if api_result.ssl_days_until_expiry is not none %}
+                    <span class="intel-check-val expiry-text">
+                      Expires in {{ api_result.ssl_days_until_expiry }} days
+                    </span>
+                    {% endif %}
+                  </div>
+
+                  <!-- URLScan.io (optional) -->
+                  {% if api_result.urlscan_uuid %}
+                  <div class="intel-check urlscan-check">
+                    <span class="intel-check-name">📸 URLScan.io</span>
+                    {% if api_result.urlscan_malicious %}
+                    <span class="intel-check-val bad">⚠ Malicious verdict (score {{ api_result.urlscan_score|default(0)
+                      }})</span>
+                    {% else %}
+                    <span class="intel-check-val ok">✓ No malicious verdict</span>
+                    {% endif %}
+
+                    {% if api_result.urlscan_url %}
+                    <a class="intel-link" href="{{ api_result.urlscan_url|e }}" target="_blank"
+                      rel="noopener noreferrer">
+                      View scan report ↗
+                    </a>
+                    {% endif %}
+
+                    {% if api_result.urlscan_screenshot %}
+                    <a class="intel-link" href="{{ api_result.urlscan_screenshot|e }}" target="_blank"
+                      rel="noopener noreferrer">
+                      View screenshot ↗
+                    </a>
+                    {% endif %}
+                  </div>
+                  {% endif %}
+
+                </div><!-- /intel-grid -->
+              </div><!-- /api-intel-panel -->
+              {% endif %}
+              <!-- ══ END API INTEL PANEL ══ -->
+
+            </div><!-- /url column -->
+
+            <!-- Email column -->
+            <div>
+              <h2 class="scan-subtitle">Email analysis</h2>
+              <label for="email_text">Email content</label>
+              <textarea id="email_text" name="email_text" rows="6"
+                placeholder="Paste suspicious email text here...">{{ email_text|default('', true) }}</textarea>
+
+              {% if email_prediction %}
+              <div class="prediction-result">
+                {% if email_prediction.is_phishing %}
+                <div class="badge badge-danger">⚠ Potential phishing email</div>
+                {% else %}
+                <div class="badge badge-success">✓ No phishing patterns found</div>
+                {% endif %}
+
+                {% if email_prediction.score is not none %}
+                <p class="score-text">
+                  Confidence: <strong>{{ '%.2f'|format((email_prediction.score|default(0)|float) * 100) }}%</strong>
+                </p>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="scan-actions">
+              <button type="submit" class="btn btn-primary btn-block">
+                ⚡ Run analysis
+              </button>
+              <p class="helper-text">
+                Fill the URL, the email content, or both for a combined check.
+              </p>
+            </div>
+          </form>
+        </section>
+
+        <!-- ══ HISTORY CARD ══ -->
+        <section class="card history-card">
+          <h2>Recently checked URLs</h2>
+          {% if recent_scans %}
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>URL</th>
+                  <th>Result</th>
+                  <th>Risk</th>
+                  <th>VT</th>
+                  <th>When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for scan in recent_scans %}
+                <tr>
+                  <td class="url-cell" title="{{ scan.url|e }}">
+                    {{ scan.url|truncate(40, True)|default('Unknown URL') }}
+                  </td>
+                  <td>
+                    {% if scan.is_phishing %}
+                    <span class="badge badge-danger">Phishing</span>
+                    {% else %}
+                    <span class="badge badge-success">Safe</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% set label = scan.risk_label|default('Clean') %}
+                    {% if label == 'High Risk' %}
+                    <span class="risk-text risk-high">{{ label }}</span>
+                    {% elif label == 'Medium Risk' %}
+                    <span class="risk-text risk-medium">{{ label }}</span>
+                    {% elif label == 'Low Risk' %}
+                    <span class="risk-text risk-low">{{ label }}</span>
+                    {% else %}
+                    <span class="risk-text risk-clean">{{ label }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if scan.virustotal_positives is not none %}
+                    {% set vt_class = 'vt-bad' if scan.virustotal_positives > 0 else 'vt-ok' %}
+                    <span class="vt-text {{ vt_class }}">
+                      {{ scan.virustotal_positives }}/{{ scan.virustotal_total|default('?') }}
+                    </span>
+                    {% else %}
+                    <span class="risk-text risk-none">&mdash;</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if scan.created_at %}
+                    {{ scan.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}
+                    <span class="muted">Unknown</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="muted">No scans yet. Try scanning a URL above.</p>
+          {% endif %}
+        </section>
+
+        <!-- ══ SAFETY TIPS ══ -->
+        <section class="card safety-card">
+          <h2>Safety tips</h2>
+          <ul class="tips-list">
+            <li>Always check the domain spelling before entering credentials.</li>
+            <li>Be cautious of emails that create a strong sense of urgency.</li>
+            <li>Never click login links from emails — type the official URL yourself.</li>
+            <li>HTTPS alone does not guarantee safety. Always verify the domain too.</li>
+            <li>When in doubt, scan the URL through SafePhishi and contact your security team.</li>
+          </ul>
+        </section>
+      </div><!-- /dashboard-grid -->
+    </div><!-- /container -->
+  </main>
+
+  <script src="{{ url_for('static', filename='js/main.js', v='20260223V1') }}"></script>
+</body>
+
+</html>

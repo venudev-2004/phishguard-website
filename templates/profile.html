@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Your SafePhishi profile — view account details and manage your settings." />
+  <title>Profile · SafePhishi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+
+<body>
+  <header class="navbar">
+    <div class="container navbar-content">
+      <div class="logo">SafePhishi</div>
+      <nav class="nav-links">
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('profile') }}" class="active">Profile</a>
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('admin.dashboard') }}" class="admin-link">Admin ⚡</a>
+        {% endif %}
+        <form class="inline-form" method="get" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="btn btn-outline">Logout</button>
+        </form>
+      </nav>
+    </div>
+  </header>
+
+  <main class="profile-main">
+    <div class="container">
+      <div class="card profile-card">
+        <h1>Your profile</h1>
+        <dl class="profile-details">
+          <div class="profile-row">
+            <dt>Email</dt>
+            <dd>{{ user.email }}</dd>
+          </div>
+          <div class="profile-row">
+            <dt>Member since</dt>
+            <dd>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}</dd>
+          </div>
+        </dl>
+        <p class="muted">
+          Profile management (password reset, 2FA, etc.) can be added here later.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>
